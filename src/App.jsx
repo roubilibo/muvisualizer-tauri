@@ -22,7 +22,6 @@ const Shape = function (x, y) {
 		Math.floor(Math.random() * 255),
 		Math.floor(Math.random() * 255),
 	];
-	// Generate a second random color for gradient effect
 	this.rgb2 = [
 		Math.floor(Math.random() * 255),
 		Math.floor(Math.random() * 255),
@@ -32,7 +31,6 @@ const Shape = function (x, y) {
 };
 
 const App = () => {
-	const [connectionStatus, setConnectionStatus] = useState("Connecting...");
 	const [isDarkMode, setIsDarkMode] = useState(true);
 	const [isFullscreen, setIsFullscreen] = useState(false);
 	const [isPlaying, setIsPlaying] = useState(true);
@@ -48,49 +46,34 @@ const App = () => {
 	const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
 	const canvasRef = useRef(null);
-	// Direct reference to canvas container for fullscreen functionality
 	const canvasContainerRef = useRef(null);
 	const shapesRef = useRef([]);
 	const settingsRef = useRef(settings);
-	const ws = useRef(null);
 	const settingsPanelRef = useRef(null);
 	const canvasDimensionsRef = useRef(canvasDimensions);
 	canvasDimensionsRef.current = canvasDimensions;
 
 	settingsRef.current = settings;
 
-	// Listen for fullscreen changes to keep state in sync (handles ESC key)
 	useEffect(() => {
-		const handleFullscreenChange = () => {
-			setIsFullscreen(!!document.fullscreenElement);
-		};
-
-		document.addEventListener("fullscreenchange", handleFullscreenChange);
-		return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+		invoke("get_devices")
+			.then((devices) => {
+				setAudioDevices(devices);
+				if (devices.length > 0) {
+					const defaultDeviceIndex = "0";
+					setSelectedDevice(defaultDeviceIndex);
+					invoke("select_device", { index: parseInt(defaultDeviceIndex, 10) }).catch(console.error);
+				}
+			})
+			.catch((err) => {
+				console.error("Failed to get devices:", err);
+			});
 	}, []);
 
-	// Listen for Tauri backend events
+	// Listen for audio data from the backend
 	useEffect(() => {
-		setConnectionStatus("Connected to backend!");
-		let unlistenDeviceList, unlistenAudioData;
-
-		// Listen for device_list event
-		listen("device_list", (event) => {
-			const devices = event.payload;
-			setAudioDevices(devices);
-			if (devices.length > 0) {
-				const defaultDevice =
-					devices.find((d) => d.name.toLowerCase().includes("stereo mix")) || devices[2];
-				if (defaultDevice) {
-					setSelectedDevice(defaultDevice.index);
-				}
-			}
-		}).then((unlisten) => {
-			unlistenDeviceList = unlisten;
-		});
-
-		// Listen for audio_data event
-		listen("audio_data", (event) => {
+		const unlistenPromise = listen("audio_data", (event) => {
+			// console.log("Received audio data:", event.payload); // Log the received data
 			const data = event.payload;
 			const currentSettings = settingsRef.current;
 			const currentDimensions = canvasDimensionsRef.current;
@@ -110,14 +93,21 @@ const App = () => {
 					lifespan: shape.lifespan * currentSettings.decayRate,
 				}))
 				.filter((shape) => shape.lifespan > 1);
-		}).then((unlisten) => {
-			unlistenAudioData = unlisten;
 		});
 
 		return () => {
-			if (unlistenDeviceList) unlistenDeviceList();
-			if (unlistenAudioData) unlistenAudioData();
+			unlistenPromise.then((unlisten) => unlisten());
 		};
+	}, []);
+
+	// Listen for fullscreen changes to keep state in sync (handles ESC key)
+	useEffect(() => {
+		const handleFullscreenChange = () => {
+			setIsFullscreen(!!document.fullscreenElement);
+		};
+
+		document.addEventListener("fullscreenchange", handleFullscreenChange);
+		return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
 	}, []);
 
 	// Animation loop for continuous rendering
@@ -162,7 +152,6 @@ const App = () => {
 
 				ctx.strokeStyle = gradient;
 			} else {
-				// Use single color for better performance
 				const [r, g, b] = shape.rgb;
 				ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${shape.lifespan / 255})`;
 			}
@@ -221,10 +210,9 @@ const App = () => {
 	};
 
 	const handleDeviceChange = (e) => {
-		const newDeviceIndex = parseInt(e.target.value, 10);
-		setSelectedDevice(e.target.value);
-		// Kirim ke backend Rust pakai invoke
-		invoke("select_device", { index: newDeviceIndex });
+		const newDeviceIndex = e.target.value;
+		setSelectedDevice(newDeviceIndex);
+		invoke("select_device", { index: parseInt(newDeviceIndex, 10) }).catch(console.error);
 	};
 
 	const handleToggleSettings = () => setIsSettingsOpen((prev) => !prev);
@@ -310,7 +298,7 @@ const App = () => {
 											<option>Loading devices...</option>
 										) : (
 											audioDevices.map((device) => (
-												<option key={device.index} value={device.index}>
+												<option key={device.index} value={String(device.index)}>
 													{device.name}
 												</option>
 											))
@@ -423,7 +411,7 @@ const App = () => {
 						: "bg-white border-gray-200 text-gray-900"
 				}`}>
 				<h2 className="text-2xl font-bold">Generative Music Visualizer</h2>
-				<p className="text-sm text-gray-500 mt-2">{connectionStatus}</p>
+				<p className="text-sm text-gray-500 mt-2">Select an audio device to begin.</p>
 			</div>
 		</div>
 	);
