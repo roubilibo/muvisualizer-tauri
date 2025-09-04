@@ -40,6 +40,7 @@ const App = () => {
 		rhythmFactor: 0.05,
 		decayRate: 0.98,
 		maxShapes: 50,
+		lineWidth: 2,
 	});
 	const [audioDevices, setAudioDevices] = useState([]);
 	const [selectedDevice, setSelectedDevice] = useState("");
@@ -117,6 +118,8 @@ const App = () => {
 
 		const ctx = canvas.getContext("2d");
 		ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+		ctx.lineWidth = settingsRef.current.lineWidth || 2;
 
 		shapesRef.current.forEach((shape) => {
 			ctx.beginPath();
@@ -340,6 +343,19 @@ const App = () => {
 										step="10"
 										value={settings.maxShapes}
 										onChange={(e) => handleSliderChange("maxShapes", parseInt(e.target.value))}
+										className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer"
+									/>
+								</div>
+								{/* Line width slider */}
+								<div>
+									<label className="text-sm">Line Width ({settings.lineWidth})</label>
+									<input
+										type="range"
+										min="1"
+										max="20"
+										step="1"
+										value={settings.lineWidth}
+										onChange={(e) => handleSliderChange("lineWidth", parseInt(e.target.value))}
 										className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer"
 									/>
 								</div>

@@ -285,7 +285,7 @@ fn process_audio_chunk(
     };
 
     let normalized_mids = (mids_energy / RHYTHM_NORMALIZATION_FACTOR).min(1.0);
-    println!("Mids Energy: {:.4}, Normalized Mids: {:.4}", mids_energy, normalized_mids);
+    // println!("Mids Energy: {:.4}, Normalized Mids: {:.4}", mids_energy, normalized_mids);
 
     let payload = AudioDataPayload {
         is_beat,
