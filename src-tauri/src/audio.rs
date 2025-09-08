@@ -103,20 +103,28 @@ pub struct AudioDataPayload {
 pub struct DeviceInfo {
     pub index: usize,
     pub name: String,
+    pub is_loopback: bool,
 }
 
 #[tauri::command]
 pub fn get_devices() -> Result<Vec<DeviceInfo>, String> {
     let host = cpal::default_host();
     let devices = host
-        .input_devices()
-        .map_err(|e| format!("Failed to get input devices: {}", e))?;
+        .devices()
+        .map_err(|e| format!("Failed to get devices: {}", e))?;
 
     let devices_info: Vec<DeviceInfo> = devices
         .enumerate()
-        .map(|(i, dev)| {
+        .filter_map(|(i, dev)| {
             let name = dev.name().unwrap_or_else(|_| "Unknown".to_string());
-            DeviceInfo { index: i, name }
+            let name_lower = name.to_lowercase();
+            let is_loopback = name_lower.contains("loopback") || name_lower.contains("stereo mix");
+            // Hanya tampilkan device input, stereo mix, atau loopback
+            if dev.default_input_config().is_ok() || is_loopback {
+                Some(DeviceInfo { index: i, name, is_loopback })
+            } else {
+                None
+            }
         })
         .collect();
 
@@ -178,18 +186,18 @@ pub fn start_audio_stream(
 ) -> Result<Stream, String> {
     let host = cpal::default_host();
     let mut devices = host
-        .input_devices()
-        .map_err(|e| format!("Failed to get input devices: {}", e))?;
+        .devices()
+        .map_err(|e| format!("Failed to get devices: {}", e))?;
     let device = devices
         .nth(device_index)
-        .or_else(|| host.default_input_device())
-        .ok_or("No input device found".to_string())?;
+        .ok_or("No device found".to_string())?;
 
     println!("Selected device: {}", device.name().unwrap_or_default());
 
     let config = device
         .default_input_config()
-        .map_err(|e| format!("Failed to get default input config: {}", e))?;
+        .or_else(|_| device.default_output_config())
+        .map_err(|e| format!("Failed to get default config: {}", e))?;
 
     let sample_format = config.sample_format();
     let stream_config: cpal::StreamConfig = config.into();

@@ -18,17 +18,24 @@ const SettingsPanel = () => {
 		invoke("get_devices")
 			.then((devices) => {
 				setAudioDevices(devices);
-				// Pilih default device stereo jika ada
-				const stereoDevice = devices.find((d) => d.name && d.name.toLowerCase().includes("stereo"));
-				if (stereoDevice) {
-					setSelectedDevice(String(stereoDevice.index));
-					invoke("select_device", { index: parseInt(stereoDevice.index, 10) }).catch(console.error);
+				// Set default device ke Stereo Mix hanya jika selectedDevice masih kosong/null/undefined
+				if (!selectedDevice && devices.length > 0) {
+					const stereoDevice = devices.find(
+						(d) => d.name && d.name.toLowerCase().includes("stereo")
+					);
+					const defaultDevice = stereoDevice || devices[0];
+					setSelectedDevice(String(defaultDevice.index));
+					invoke("select_device", { index: parseInt(defaultDevice.index, 10) }).catch(
+						console.error
+					);
 				}
 			})
 			.catch((err) => {
 				console.error("Failed to get devices:", err);
 			});
-	}, [setAudioDevices, setSelectedDevice]);
+		// Hanya jalankan saat pertama mount, dan jika selectedDevice berubah dari luar
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [setAudioDevices, selectedDevice, setSelectedDevice]);
 
 	const handleSliderChange = (key, value) => {
 		setSettings({ ...settings, [key]: value });
@@ -42,8 +49,11 @@ const SettingsPanel = () => {
 
 	const handleGradientShapes = () => setIsGradientShapes(!isGradientShapes);
 
+	// Temukan device yang sedang aktif
+	const activeDevice = audioDevices.find((d) => String(d.index) === String(selectedDevice));
+
 	return (
-		<div className="w-80 p-4 rounded-2xl shadow-2xl bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">
+		<div className="w-80 p-4 rounded-2xl shadow-2xl bg-white text-gray-900 dark:bg-gray-800 dark:text-gray-100">
 			<div className="grid gap-4">
 				<div className="space-y-2">
 					<h4 className="font-medium leading-none">Settings</h4>
@@ -56,17 +66,22 @@ const SettingsPanel = () => {
 							value={selectedDevice}
 							onChange={handleDeviceChange}
 							disabled={audioDevices.length === 0}
-							className="mt-1 w-full p-2 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 outline-none">
+							className="mt-1 w-full p-2 bg-gray-100 text-gray-900 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600">
 							{audioDevices.length === 0 ? (
 								<option>Loading devices...</option>
 							) : (
 								audioDevices.map((device) => (
 									<option key={device.index} value={String(device.index)}>
 										{device.name}
+										{String(device.index) === String(selectedDevice) ? " (selected)" : ""}
 									</option>
 								))
 							)}
 						</select>
+						{/* Tampilkan nama device yang sedang aktif di luar select */}
+						{activeDevice && (
+							<div className="text-xs text-blue-600 mt-1">Selected: {activeDevice.name}</div>
+						)}
 					</div>
 					<div>
 						<label className="text-sm">Rhythm Pulse ({settings.rhythmFactor.toFixed(2)})</label>
@@ -77,7 +92,7 @@ const SettingsPanel = () => {
 							step="0.005"
 							value={settings.rhythmFactor}
 							onChange={(e) => handleSliderChange("rhythmFactor", parseFloat(e.target.value))}
-							className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer"
+							className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
 						/>
 					</div>
 					<div>
