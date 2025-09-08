@@ -25,6 +25,10 @@ const useMainStore = create((set) => ({
 	setSettings: (val) => set({ settings: val }),
 	setAudioDevices: (val) => set({ audioDevices: val }),
 	setSelectedDevice: (val) => set({ selectedDevice: val }),
+	// Reset visualizer shapes (to be used by VisualizerCanvas)
+	// Reset trigger for visualizer shapes
+	resetShapesFlag: false,
+	resetShapes: () => set((state) => ({ resetShapesFlag: !state.resetShapesFlag })),
 }));
 
 export default useMainStore;

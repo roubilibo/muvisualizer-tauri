@@ -1,16 +1,12 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
-import { listen } from "@tauri-apps/api/event";
-import { invoke } from "@tauri-apps/api/core";
 import Layout from "./components/Layout";
 import TopLeftControls from "./components/TopLeftControls";
 import TopRightControls from "./components/TopRightControls";
 import SettingsPanel from "./components/SettingsPanel";
 import VisualizerCanvas from "./components/VisualizerCanvas";
 import StatusInfo from "./components/StatusInfo";
-import { ThemeProvider, useTheme } from "./components/ThemeContext";
-import { FullscreenProvider } from "./components/FullscreenContext";
+import { useTheme } from "./context/ThemeContext";
 
-const AppContent = () => {
+const App = () => {
 	const { isDarkMode } = useTheme();
 	return (
 		<Layout isDarkMode={isDarkMode}>
@@ -21,16 +17,6 @@ const AppContent = () => {
 			<VisualizerCanvas />
 			<StatusInfo />
 		</Layout>
-	);
-};
-
-const App = () => {
-	return (
-		<ThemeProvider>
-			<FullscreenProvider>
-				<AppContent />
-			</FullscreenProvider>
-		</ThemeProvider>
 	);
 };
 

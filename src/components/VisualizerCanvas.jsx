@@ -2,19 +2,23 @@ import React, { useRef, useEffect, useCallback, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
 import createShape from "../utils/createShape";
 import useMainStore from "../store/useMainStore";
-import { useFullscreen } from "./FullscreenContext";
+import { useFullscreen } from "../context/FullscreenContext";
 
 const VisualizerCanvas = () => {
 	const canvasRef = useRef(null);
 	const canvasContainerRef = useRef(null);
 	const [canvasDimensions, setCanvasDimensions] = useState({ width: 800, height: 600 });
-	const { isPlaying, isGradientShapes, settings } = useMainStore();
+	const { isPlaying, isGradientShapes, settings, resetShapesFlag } = useMainStore();
 	const { isFullscreen, setIsFullscreen } = useFullscreen();
 	const shapesRef = useRef([]);
 	const settingsRef = useRef(settings);
 	const canvasDimensionsRef = useRef(canvasDimensions);
 	canvasDimensionsRef.current = canvasDimensions;
 	settingsRef.current = settings;
+	// Listen for resetShapesFlag changes to clear shapes
+	useEffect(() => {
+		shapesRef.current = [];
+	}, [resetShapesFlag]);
 
 	// Listen for audio data from the backend
 	useEffect(() => {

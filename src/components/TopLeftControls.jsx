@@ -2,11 +2,10 @@ import { Pause, Play, RefreshCcw } from "lucide-react";
 import useMainStore from "../store/useMainStore";
 
 const TopLeftControls = () => {
-	const { isPlaying, setIsPlaying } = useMainStore();
+	const { isPlaying, setIsPlaying, resetShapes } = useMainStore();
 	const handleTogglePlayPause = () => setIsPlaying(!isPlaying);
 	const handleReset = () => {
-		// Reset logic: bisa diatur di zustand jika ingin global
-		// Contoh: window.location.reload() atau reset shape di VisualizerCanvas
+		resetShapes();
 	};
 	return (
 		<div className="absolute top-4 left-4 z-10 flex space-x-2">

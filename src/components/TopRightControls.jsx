@@ -1,7 +1,7 @@
 import React, { useRef } from "react";
 import { Sun, Moon, Maximize, Minimize, SlidersHorizontal } from "lucide-react";
-import { useTheme } from "./ThemeContext";
-import { useFullscreen } from "./FullscreenContext";
+import { useTheme } from "../context/ThemeContext";
+import { useFullscreen } from "../context/FullscreenContext";
 
 const TopRightControls = ({ children }) => {
 	const { isDarkMode, setIsDarkMode } = useTheme();
