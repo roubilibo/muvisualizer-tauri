@@ -14,6 +14,11 @@ const RATE: u32 = 44100;
 // sesuaikan lagi agar deteksi beat lebih sensitif?
 const BEAT_VELOCITY_THRESHOLD: f32 = 0.1; 
 const RHYTHM_NORMALIZATION_FACTOR: f32 = 0.05; 
+// Konstanta untuk fine-tuning vokal
+const VOCAL_LOW: f32 = 300.0; // Frekuensi rendah untuk band vokal
+const VOCAL_HIGH: f32 = 3000.0; // Frekuensi tinggi untuk band vokal
+const VOCAL_THRESHOLD: f32 = 0.05; // Threshold energi vokal untuk mengurangi deteksi beat
+const VOCAL_REDUCTION_FACTOR: f32 = 0.5; // Faktor pengurangan bass_velocity jika vokal tinggi 
 
 // --- Message Passing for Audio Thread ---
 #[allow(dead_code)]
@@ -76,11 +81,30 @@ impl BeatDetector {
             0.0
         };
 
-        let bass_velocity = bass_energy - self.last_bass_energy;
+        // Hitung energi vokal untuk fine-tuning
+        let vocal_band: Vec<usize> = frequencies
+            .iter()
+            .enumerate()
+            .filter(|(_, &f)| f >= VOCAL_LOW && f < VOCAL_HIGH)
+            .map(|(i, _)| i)
+            .collect();
+
+        let vocal_energy = if !vocal_band.is_empty() {
+            vocal_band.iter().map(|&i| fft_magnitude[i]).sum::<f32>() / vocal_band.len() as f32
+        } else {
+            0.0
+        };
+
+        let mut bass_velocity = bass_energy - self.last_bass_energy;
         self.last_bass_energy = bass_energy;
 
+        // Kurangi bass_velocity jika energi vokal tinggi untuk menghindari deteksi beat dari vokal
+        if vocal_energy > VOCAL_THRESHOLD {
+            bass_velocity -= vocal_energy * VOCAL_REDUCTION_FACTOR;
+        }
+
         // Cetak nilai untuk debugging
-        // println!("Bass Energy: {:.4}, Bass Velocity: {:.4}", bass_energy, bass_velocity);
+        // println!("Bass Energy: {:.4}, Bass Velocity: {:.4}, Vocal Energy: {:.4}", bass_energy, bass_velocity, vocal_energy);
 
         let now = Instant::now();
         let is_beat = bass_velocity > BEAT_VELOCITY_THRESHOLD
